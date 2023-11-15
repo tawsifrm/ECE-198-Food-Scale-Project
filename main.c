@@ -1,4 +1,5 @@
 #include "stm32f4xx.h"
+#include "stdio.h"
 
 #define RS_Pin GPIO_PIN_12
 #define RS_GPIO_Port GPIOB
@@ -22,36 +23,71 @@ void LCD_Clear(void);
 void LCD_WriteString(char* str);
 void LCD_Init(void);
 
+static uint8_t GAIN; // Gain for clock cycles.
+
+void delay_us(uint16_t us) {
+    __HAL_TIM_SET_COUNTER(&htim1, 0);
+    while (__HAL_TIM_GET_COUNTER(&htim1) < us);
+}
+
+void hx711_powerUp(void) {
+    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET);
+}
+
+void hx711_setGain(uint8_t gain) {
+    if (gain < 64)
+        GAIN = 2; // 32, channel B
+    else if (gain < 128)
+        GAIN = 3; // 64, channel A
+    else
+        GAIN = 1; // 128, channel A
+}
+
+void hx711_init(void) {
+    hx711_setGain(128);
+    hx711_powerUp();
+}
+
+int32_t hx711_get_value(void) {
+    // Implementation of hx711_get_value() function...
+}
+
+uint8_t hx711_is_ready(void) {
+    return HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_3) == GPIO_PIN_RESET;
+}
+
 void EXTI0_IRQHandler(void) {
-    // Handle button press
+    // Handle button press and hold
     if (HAL_GPIO_ReadPin(B1_GPIO_Port, B1_Pin) == GPIO_PIN_SET) {
         // Button is pressed
         LCD_Clear();
         static int foodIndex = 0;
         char* foodOptions[] = {
-            "Please select a food", 
-            "Apple", 
-            "Sandwich", 
-            "Slice of Pizza", 
-            "Burger", 
-            "Salad", 
-            "Pasta", 
-            "Ice Cream", 
+            "Please select a food",
+            "Apple",
+            "Sandwich",
+            "Slice of Pizza",
+            "Burger",
+            "Salad",
+            "Pasta",
+            "Ice Cream",
             "Sushi"
             // Add more food options as needed
         };
         LCD_WriteString(foodOptions[foodIndex]);
         foodIndex = (foodIndex + 1) % (sizeof(foodOptions) / sizeof(foodOptions[0]));
         HAL_Delay(500); // Debounce delay
-    }
-}
-
-void EXTI0_IRQHandler(void) {
-    // Handle button hold
-    if (HAL_GPIO_ReadPin(B1_GPIO_Port, B1_Pin) == GPIO_PIN_RESET) {
+    } else if (HAL_GPIO_ReadPin(B1_GPIO_Port, B1_Pin) == GPIO_PIN_RESET) {
         // Button is held down
         LCD_Clear();
         LCD_WriteString("Caloric Feedback");
+        int32_t hx711_value = hx711_get_value();
+        double weightInGrams = (((double)hx711_value) / 1000) + 263;
+        // Convert to kilograms
+        double weightInKg = weightInGrams / 1000.0;
+        char weightStr[16];
+        sprintf(weightStr, "Weight: %.2f Kg", weightInKg);
+        LCD_WriteString(weightStr);
         // Perform your calculations or actions here
         HAL_Delay(1000); // Adjust delay as needed
     }
