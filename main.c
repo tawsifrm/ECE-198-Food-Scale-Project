@@ -22,6 +22,11 @@
 #define LED2_Pin GPIO_PIN_6
 #define LED2_GPIO_Port GPIOA
 
+void SystemClock_Config(void);
+static void MX_GPIO_Init(void);
+static void MX_TIM1_Init(void);
+static void MX_USART1_UART_Init(void);
+
 void init_leds(void) {
     GPIO_InitTypeDef GPIO_InitStruct = {0};
     // Configure LED1 and LED2 pins as output
