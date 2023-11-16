@@ -17,6 +17,26 @@
 #define B1_Pin GPIO_PIN_0
 #define B1_GPIO_Port GPIOA
 
+#define LED1_Pin GPIO_PIN_5
+#define LED1_GPIO_Port GPIOA
+#define LED2_Pin GPIO_PIN_6
+#define LED2_GPIO_Port GPIOA
+
+void init_leds(void) {
+    GPIO_InitTypeDef GPIO_InitStruct = {0};
+    // Configure LED1 and LED2 pins as output
+    GPIO_InitStruct.Pin = LED1_Pin | LED2_Pin;
+    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+}
+
+void toggle_leds(void) {
+    HAL_GPIO_TogglePin(LED1_GPIO_Port, LED1_Pin);
+    HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
+}
+
 void LCD_SendCommand(uint8_t command);
 void LCD_SendData(uint8_t data);
 void LCD_Clear(void);
@@ -49,7 +69,38 @@ void hx711_init(void) {
 }
 
 int32_t hx711_get_value(void) {
-    // Implementation of hx711_get_value() function...
+    uint32_t data = 0;
+    uint8_t dout;
+    int32_t filler;
+    int32_t ret_value;
+
+    for (uint8_t i = 0; i < 24; i++) {
+        HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET);
+        delay_us(1);
+        dout = HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_3);
+        data = data << 1;
+        if (dout) {
+            data++;
+        }
+        HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET);
+        delay_us(1);
+    }
+
+    for (int i = 0; i < GAIN; i++) {
+        HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET);
+        delay_us(1);
+        HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET);
+        delay_us(1);
+    }
+
+    if (data & 0x800000) {
+        filler = 0xFF000000;
+    } else {
+        filler = 0x00000000;
+    }
+
+    ret_value = filler + data;
+    return ret_value;
 }
 
 uint8_t hx711_is_ready(void) {
@@ -133,7 +184,7 @@ void LCD_SendData(uint8_t data) {
     HAL_GPIO_WritePin(D4_GPIO_Port, D4_Pin, data & 1);
     HAL_GPIO_WritePin(D5_GPIO_Port, D5_Pin, (data >> 1) & 1);
     HAL_GPIO_WritePin(D6_GPIO_Port, D6_Pin, (data >> 2) & 1);
-    HAL_GPIO_WritePin(D7_GPIO_Port, D7_Pin, (data >> & 1);
+    HAL_GPIO_WritePin(D7_GPIO_Port, D7_Pin, (data >> 7) & 1);
     HAL_GPIO_WritePin(EN_GPIO_Port, EN_Pin, GPIO_PIN_SET);
     HAL_Delay(1);
     HAL_GPIO_WritePin(EN_GPIO_Port, EN_Pin, GPIO_PIN_RESET);
@@ -176,8 +227,20 @@ int main(void) {
     LCD_Init();
     LCD_Clear();
     LCD_WriteString("Please select a food");
+    init_leds();
 
     while (1) {
-        // Main loop
+        toggle_leds();  // Toggle the LEDs
+        HAL_Delay(3);    // Wait for 3 ms
+
+        // Check if button 1 is pressed
+        if (HAL_GPIO_ReadPin(B1_GPIO_Port, B1_Pin) == GPIO_PIN_SET) {
+            break;  // Exit the loop if the button is pressed
+        }
     }
+
+    while (1) {
+        // Additional code in the main loop after button press
+    }
+
 }
