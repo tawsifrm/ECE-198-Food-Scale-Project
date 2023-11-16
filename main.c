@@ -27,6 +27,12 @@ static void MX_GPIO_Init(void);
 static void MX_TIM1_Init(void);
 static void MX_USART1_UART_Init(void);
 
+void delay_us (uint16_t us) //delay function
+{
+__HAL_TIM_SET_COUNTER(&htim1,0);  // setting the delay counter to 0.
+while (__HAL_TIM_GET_COUNTER(&htim1) < us);  // while loop till the counter reaches the delay given (us).
+}
+
 void init_leds(void) {
     GPIO_InitTypeDef GPIO_InitStruct = {0};
     // Configure LED1 and LED2 pins as output
