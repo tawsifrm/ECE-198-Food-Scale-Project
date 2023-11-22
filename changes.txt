@@ -1,0 +1,9 @@
+Changes in order:
+1. Add 'documents' folder with project proposal and design document
+2. WIP: Start main.c with LCD display code, incomplete main loop, and initial caloric calculations integration
+3. Implement HX711 module code in main.c
+4. Implemented HX711 getValue function and added code for LEDs to blink every 3 ms until user interaction
+5. Implemented clock config
+6. Added delay function for STM board
+7. Fixed and finalized LCD display function
+8. Test cases were not able to be demonstrated through main.c, created new c file to display nature of tests.
